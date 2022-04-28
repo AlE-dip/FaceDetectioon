@@ -44,46 +44,74 @@ public class ListFilterFragment extends Fragment {
         createOperations();
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-    }
-
     private void createOperations() {
         cacheFilters = new ArrayList<>();
+
         cacheFilters.add(new CacheFilter(context.getString(R.string.default_image), null, new IChangeImage() {
             @Override
-            public void Filter(Mat mat) {
+            public void Filter(Mat mat, ConfigFilter configFilter) {
                 return;
             }
         }));
+
         ConfigFilter configFilter2 = new ConfigFilter();
+        configFilter2.createSeekBar(80, 0, 255, context.getString(R.string.thresh));
+        configFilter2.createSeekBar(255, 0, 255, context.getString(R.string.maxval));
         cacheFilters.add(new CacheFilter(context.getString(R.string.binary_image), configFilter2,new IChangeImage() {
             @Override
-            public void Filter(Mat mat) {
+            public void Filter(Mat mat, ConfigFilter configFilter) {
                 Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY);
-                Imgproc.threshold(mat, mat, 127, 255, Imgproc.THRESH_BINARY);
+                Imgproc.threshold(mat, mat, configFilter.seekBars.get(0).value, configFilter.seekBars.get(1).value, Imgproc.THRESH_BINARY);
             }
         }));
-        ConfigFilter configFilter3 = new ConfigFilter();
-        cacheFilters.add(new CacheFilter(context.getString(R.string.gray_image), configFilter3, new IChangeImage() {
+
+        cacheFilters.add(new CacheFilter(context.getString(R.string.gray_image), null, new IChangeImage() {
             @Override
-            public void Filter(Mat mat) {
+            public void Filter(Mat mat, ConfigFilter configFilter) {
                 Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY);
             }
         }));
+
         ConfigFilter configFilter4 = new ConfigFilter();
+        configFilter4.createSeekBar(100, 1, 200, context.getString(R.string.opacity));
+        configFilter4.setSelected(5);
+        configFilter4.createSelection(5, "5");
+        configFilter4.createSelection(45, "45");
+        configFilter4.createSelection(51, "51");
         cacheFilters.add(new CacheFilter(context.getString(R.string.gaussian_blur_image), configFilter4, new IChangeImage() {
             @Override
-            public void Filter(Mat mat) {
-                Imgproc.GaussianBlur(mat, mat, new Size(45, 45), 0);
+            public void Filter(Mat mat, ConfigFilter configFilter) {
+                Imgproc.GaussianBlur(mat, mat, new Size(configFilter.selected, configFilter.selected), configFilter.seekBars.get(0).value / 10.0);
             }
         }));
+
         ConfigFilter configFilter5 = new ConfigFilter();
+        configFilter5.createSeekBar(-8, -20, 0, context.getString(R.string.brightness));
         cacheFilters.add(new CacheFilter(context.getString(R.string.light_balance_gamma), configFilter5, new IChangeImage() {
             @Override
-            public void Filter(Mat mat) {
-                Filter.lightBalanceGamma(mat, 2);
+            public void Filter(Mat mat, ConfigFilter configFilter) {
+                Filter.lightBalanceGamma(mat, configFilter.seekBars.get(0).value / 10.0 * -1);
+            }
+        }));
+
+        ConfigFilter configFilter6 = new ConfigFilter();
+        configFilter6.createSeekBar(2, 2, 50, context.getString(R.string.darkness));
+        cacheFilters.add(new CacheFilter(context.getString(R.string.dark_image), configFilter6, new IChangeImage() {
+            @Override
+            public void Filter(Mat mat, ConfigFilter configFilter) {
+                Filter.lightBalanceGamma(mat, configFilter.seekBars.get(0).value);
+            }
+        }));
+
+        ConfigFilter configFilter7 = new ConfigFilter();
+        configFilter7.setSelected(0);
+        configFilter7.createSelection(2, context.getString(R.string.delete_blur));
+        configFilter7.createSelection(1, context.getString(R.string.delete_green));
+        configFilter7.createSelection(0, context.getString(R.string.delete_red));
+        cacheFilters.add(new CacheFilter(context.getString(R.string.delete_color), configFilter7, new IChangeImage() {
+            @Override
+            public void Filter(Mat mat, ConfigFilter configFilter) {
+                Filter.deleteColor(mat, configFilter.selected);
             }
         }));
     }

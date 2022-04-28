@@ -10,6 +10,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.facedetectioon.EditPictureActivity;
@@ -58,10 +59,8 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    Mat mat = new Mat();
-                    Utils.bitmapToMat(bitmap, mat);
-                    cacheFilter.getChangeImage().Filter(mat);
-                    Bitmap bmNew = Convert.createBitmapFromMat(mat);
+
+                    Bitmap bmNew = Convert.changeImage(cacheFilter, bitmap);
 
                     holder.imImage.post(new Runnable() {
                         @Override
@@ -93,13 +92,13 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
                 cacheViewClick = holder;
                 if(cacheFilter.getConfigFilter() != null){
                     holder.imConfig.setVisibility(View.VISIBLE);
-                    holder.imConfig.setOnClickListener(createListenerConfig());
+                    holder.imConfig.setOnClickListener(createListenerConfig(cacheFilter));
                 }
             }
         };
     }
 
-    public View.OnClickListener createListenerConfig(){
+    public View.OnClickListener createListenerConfig(CacheFilter cacheFilter){
         return new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -107,6 +106,9 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
                     rcListConfig.setVisibility(View.GONE);
                 } else {
                     rcListConfig.setVisibility(View.VISIBLE);
+                    ConfigFilterAdapter configFilterAdapter = new ConfigFilterAdapter(context, cacheFilter, imageView, bitmap);
+                    rcListConfig.setAdapter(configFilterAdapter);
+                    rcListConfig.setLayoutManager(new LinearLayoutManager(context));
                 }
             }
         };

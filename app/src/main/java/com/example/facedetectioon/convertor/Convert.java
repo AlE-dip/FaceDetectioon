@@ -6,6 +6,8 @@ import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import com.example.facedetectioon.MainActivity;
+import com.example.facedetectioon.model.CacheFilter;
+import com.example.facedetectioon.model.CacheImage;
 
 import org.opencv.android.Utils;
 import org.opencv.core.CvType;
@@ -58,6 +60,14 @@ public class Convert {
         }
         Size size1 = new Size(mat.width()/size, mat.height()/size);
         Imgproc.resize(mat, mat, size1);
+    }
+
+    public static Bitmap changeImage(CacheFilter cacheFilter, Bitmap bitmap){
+        Mat mat = new Mat();
+        Utils.bitmapToMat(bitmap, mat);
+        cacheFilter.getChangeImage().Filter(mat, cacheFilter.getConfigFilter());
+        Bitmap bmNew = Convert.createBitmapFromMat(mat);
+        return bmNew;
     }
 
     public static Bitmap resizeBitmap(String photoPath, int targetW, int targetH) {
