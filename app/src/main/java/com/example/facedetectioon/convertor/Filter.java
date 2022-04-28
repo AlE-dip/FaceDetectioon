@@ -11,33 +11,6 @@ import org.opencv.imgproc.Imgproc;
 
 public class Filter {
 
-    public static void resize(Mat mat, int size){
-        if(size <= 0){
-            size = 1;
-        }
-        Size size1 = new Size(mat.width()/size, mat.height()/size);
-        Imgproc.resize(mat, mat, size1);
-    }
-
-    public static Bitmap resizeBitmap(String photoPath, int targetW, int targetH) {
-        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-        bmOptions.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(photoPath, bmOptions);
-        int photoW = bmOptions.outWidth;
-        int photoH = bmOptions.outHeight;
-
-        int scaleFactor = 1;
-        if ((targetW > 0) || (targetH > 0)) {
-            scaleFactor = Math.min(photoW/targetW, photoH/targetH);
-        }
-
-        bmOptions.inJustDecodeBounds = false;
-        bmOptions.inSampleSize = scaleFactor;
-        bmOptions.inPurgeable = true;
-
-        return BitmapFactory.decodeFile(photoPath, bmOptions);
-    }
-
     //f1 = 0, f2 = 1, f3 = 2
     public static void deleteColor(Mat src, int BGR){
         //Xoa mau

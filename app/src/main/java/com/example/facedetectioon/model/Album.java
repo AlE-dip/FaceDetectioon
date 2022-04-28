@@ -9,12 +9,13 @@ import java.util.ArrayList;
 public class Album {
     private int id;
     private String name;
-    private ArrayList<String> pathImages = new ArrayList<>();
+    private ArrayList<CacheImage> cacheImages = new ArrayList<>();
 
     public Album(String name, File[] imageFiles) {
         this.name = name;
         for(int i = 0; i < imageFiles.length; i++){
-            pathImages.add(imageFiles[i].getAbsolutePath());
+            CacheImage cacheImage = new CacheImage(imageFiles[i].getAbsolutePath());
+            cacheImages.add(cacheImage);
         }
     }
 
@@ -32,5 +33,13 @@ public class Album {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public ArrayList<CacheImage> getCacheImages() {
+        return cacheImages;
+    }
+
+    public void setCacheImages(ArrayList<CacheImage> cacheImages) {
+        this.cacheImages = cacheImages;
     }
 }

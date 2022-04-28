@@ -4,9 +4,18 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/activity_chose_picture.xml" value="0.14635416666666667" />
+        <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/activity_edit_picture.xml" value="0.2" />
+        <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/activity_list_image.xml" value="0.24682971014492755" />
         <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/activity_main.xml" value="0.12708333333333333" />
+        <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/fragment_config.xml" value="0.24682971014492755" />
+        <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/fragment_list_filter.xml" value="0.1" />
+        <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/item_album.xml" value="0.176" />
+        <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/item_filter.xml" value="0.15520833333333334" />
+        <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/item_image.xml" value="0.24682971014492755" />
+        <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/item_list_album.xml" value="0.24682971014492755" />
         <entry key="..\:/Github/FaceDetectioon/app/src/main/res/layout/menu_navigation.xml" value="0.14635416666666667" />
         <entry key="..\:/Github/FaceDetectioon/app/src/main/res/menu/bottom_navigation_menu.xml" value="0.14635416666666667" />
+        <entry key="..\:/Github/FaceDetectioon/app/src/main/res/menu/list_filter.xml" value="0.25" />
       </map>
     </option>
   </component>

@@ -1,5 +1,10 @@
 package com.example.facedetectioon.model;
 
 public class ContentShare {
-    public static int maxId = 0;
+    private static long maxId = 0;
+
+    public static synchronized long getMaxId() {
+        maxId++;
+        return maxId;
+    }
 }
