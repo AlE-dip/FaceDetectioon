@@ -64,9 +64,11 @@ public class ConfigFilterAdapter extends RecyclerView.Adapter<ConfigFilterAdapte
                 public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                     sb.setValue(seekBar.getProgress());
 
-                    Bitmap bmNew = Convert.changeImage(cacheFilter, bitmap);
-                    cacheFilter.setBitmap(bmNew);
-                    imageView.setImageBitmap(bmNew);
+                    Bitmap bmNew = Convert.applyEffect(cacheFilter, bitmap, imageView);
+
+                    if(bmNew != null){
+                        imageView.setImageBitmap(bmNew);
+                    }
                 }
 
                 @Override

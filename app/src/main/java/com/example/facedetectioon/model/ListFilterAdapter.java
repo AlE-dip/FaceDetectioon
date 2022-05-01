@@ -60,20 +60,20 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
                 @Override
                 public void run() {
 
-                    Bitmap bmNew = Convert.changeImage(cacheFilter, bitmap);
-
-                    holder.imImage.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (holder.id == cacheFilter.getId()) {
-                                holder.imImage.setImageBitmap(bmNew);
+                    Bitmap bmNew = Convert.applyEffect(cacheFilter, bitmap, holder.imImage);
+                    if(bmNew != null){
+                        holder.imImage.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (holder.id == cacheFilter.getId()) {
+                                    holder.imImage.setImageBitmap(bmNew);
+                                }
                             }
-                            cacheFilter.setBitmap(bmNew);
-                            holder.imImage.setOnClickListener(createListenerImage(cacheFilter, holder));
-                        }
-                    });
+                        });
+                    }
                 }
             }).start();
+            holder.imImage.setOnClickListener(createListenerImage(cacheFilter, holder));
         } else {
             holder.imImage.setImageBitmap(cacheFilter.getBitmap());
             holder.imImage.setOnClickListener(createListenerImage(cacheFilter, holder));
@@ -84,7 +84,12 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
         return new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                imageView.setImageBitmap(cacheFilter.getBitmap());
+                if(cacheFilter.getChangeImage() != null){
+                    imageView.setImageBitmap(cacheFilter.getBitmap());
+                } else {
+                    Convert.applyEffect(cacheFilter, bitmap, imageView);
+                }
+
                 if(cacheViewClick != null && cacheViewClick.imConfig.getVisibility() == View.VISIBLE){
                     cacheViewClick.imConfig.setVisibility(View.GONE);
                     rcListConfig.setVisibility(View.GONE);

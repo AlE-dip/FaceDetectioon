@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
+import android.widget.ImageView;
 
 import com.example.facedetectioon.MainActivity;
 import com.example.facedetectioon.model.CacheFilter;
@@ -62,12 +63,19 @@ public class Convert {
         Imgproc.resize(mat, mat, size1);
     }
 
-    public static Bitmap changeImage(CacheFilter cacheFilter, Bitmap bitmap){
+    public static Bitmap applyEffect(CacheFilter cacheFilter, Bitmap bitmap, ImageView imageView){
         Mat mat = new Mat();
         Utils.bitmapToMat(bitmap, mat);
-        cacheFilter.getChangeImage().Filter(mat, cacheFilter.getConfigFilter());
-        Bitmap bmNew = Convert.createBitmapFromMat(mat);
-        return bmNew;
+        if(cacheFilter.getDetectFace() != null){
+            cacheFilter.getDetectFace().detectFacialPart(bitmap, mat, cacheFilter.getConfigFilter(), imageView);
+        }
+        if(cacheFilter.getChangeImage() != null){
+            cacheFilter.getChangeImage().Filter(mat, cacheFilter.getConfigFilter());
+            Bitmap bmNew = Convert.createBitmapFromMat(mat);
+            cacheFilter.setBitmap(bmNew);
+            return bmNew;
+        }
+        return null;
     }
 
     public static Bitmap resizeBitmap(String photoPath, int targetW, int targetH) {

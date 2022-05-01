@@ -5,7 +5,9 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Shader;
@@ -41,11 +43,11 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView navigationBar;
     public static ArrayList<Album> albums;
 
-    static{
-        if(OpenCVLoader.initDebug()){
-            Log.d("Check","OpenCv configured successfully");
-        } else{
-            Log.d("Check","OpenCv doesn’t configured successfully");
+    static {
+        if (OpenCVLoader.initDebug()) {
+            Log.d("Check", "OpenCv configured successfully");
+        } else {
+            Log.d("Check", "OpenCv doesn’t configured successfully");
         }
     }
 
@@ -67,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         File path = Environment.getExternalStorageDirectory();
 
         albums = new ArrayList<>();
-        if(AskPermission.filePermission(this)){
+        if (AskPermission.filePermission(this)) {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -104,14 +106,18 @@ public class MainActivity extends AppCompatActivity {
         navigationBar.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                switch (item.getItemId()){
+                switch (item.getItemId()) {
                     case R.id.mnGallery:
                         Intent intent = new Intent(MainActivity.this, ChosePictureActivity.class);
                         startActivity(intent);
                         break;
                     case R.id.mnCamera:
+                        if (checkCameraHardware(MainActivity.this) && AskPermission.cameraPermission(MainActivity.this)) {
+                            goCameraView();
+                        }
                         break;
                     case R.id.mnVideo:
+
                         break;
                 }
                 return true;
@@ -119,17 +125,44 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Check if this device has a camera
+     */
+    private boolean checkCameraHardware(Context context) {
+        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+            // this device has a camera
+            return true;
+        } else {
+            // no camera on this device
+            return false;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == AskPermission.REQUEST_CAMERA_CODE) {
+            goCameraView();
+        }
+
+    }
+
+    public void goCameraView() {
+        Intent intent = new Intent(MainActivity.this, CameraActivity.class);
+        startActivity(intent);
+    }
+
     private void getListAlbum(File file, ArrayList<Album> albums) {
         Queue<File[]> queueFile = new LinkedList<>();
         File[] arrFile = {file};
         queueFile.add(arrFile);
 
-        while (queueFile.size() > 0){
+        while (queueFile.size() > 0) {
             arrFile = queueFile.poll();
 
-            for(int i = 0; i < arrFile.length; i++){
+            for (int i = 0; i < arrFile.length; i++) {
 
-                if(arrFile[i].isDirectory()){
+                if (arrFile[i].isDirectory()) {
                     File[] dirFiles = arrFile[i].listFiles(new FilenameFilter() {
                         @Override
                         public boolean accept(File dir, String filename) {
@@ -137,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
                             return file2.isDirectory() && !file2.isHidden() && !filename.startsWith(".");
                         }
                     });
-                    if(dirFiles != null && dirFiles.length > 0){
+                    if (dirFiles != null && dirFiles.length > 0) {
                         queueFile.add(dirFiles);
                     }
                     File[] imageFiles = arrFile[i].listFiles(new FilenameFilter() {
@@ -146,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
                             return filename.contains(".png") || filename.contains(".jpg");
                         }
                     });
-                    if(imageFiles != null && imageFiles.length > 0){
+                    if (imageFiles != null && imageFiles.length > 0) {
                         Album album = new Album(arrFile[i].getName(), imageFiles);
                         albums.add(album);
                     }

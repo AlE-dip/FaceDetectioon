@@ -8,12 +8,22 @@ public class CacheFilter {
     private Bitmap bitmap;
     private ConfigFilter configFilter;
     private IChangeImage changeImage;
+    private IDetectFace detectFace;
 
-    public CacheFilter(String name, ConfigFilter configFilter, IChangeImage changeImage) {
+    public CacheFilter(String name, ConfigFilter configFilter, IChangeImage changeImage, IDetectFace detectFace) {
         this.id = ContentShare.getMaxId();
         this.name = name;
         this.configFilter = configFilter;
         this.changeImage = changeImage;
+        this.detectFace = detectFace;
+    }
+
+    public IDetectFace getDetectFace() {
+        return detectFace;
+    }
+
+    public void setDetectFace(IDetectFace detectFace) {
+        this.detectFace = detectFace;
     }
 
     public ConfigFilter getConfigFilter() {

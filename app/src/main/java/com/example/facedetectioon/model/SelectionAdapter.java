@@ -62,10 +62,11 @@ public class SelectionAdapter extends RecyclerView.Adapter<SelectionAdapter.View
                 holder.txSelector.setBackgroundColor(context.getColor(R.color.gray));
 
                 cacheFilter.getConfigFilter().setSelected(selection.value);
-                Bitmap bmNew = Convert.changeImage(cacheFilter, bitmap);
+                Bitmap bmNew = Convert.applyEffect(cacheFilter, bitmap, imageView);
 
-                imageView.setImageBitmap(bmNew);
-
+                if(bmNew != null){
+                    imageView.setImageBitmap(bmNew);
+                }
             }
         });
     }

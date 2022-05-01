@@ -15,10 +15,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
+import com.example.facedetectioon.convertor.FaceDetect;
 import com.example.facedetectioon.convertor.Filter;
 import com.example.facedetectioon.model.CacheFilter;
 import com.example.facedetectioon.model.ConfigFilter;
 import com.example.facedetectioon.model.IChangeImage;
+import com.example.facedetectioon.model.IDetectFace;
 import com.example.facedetectioon.model.ListFilterAdapter;
 
 import org.opencv.core.CvType;
@@ -52,7 +54,7 @@ public class ListFilterFragment extends Fragment {
             public void Filter(Mat mat, ConfigFilter configFilter) {
                 return;
             }
-        }));
+        }, null));
 
         ConfigFilter configFilter2 = new ConfigFilter();
         configFilter2.createSeekBar(80, 0, 255, context.getString(R.string.thresh));
@@ -63,14 +65,14 @@ public class ListFilterFragment extends Fragment {
                 Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY);
                 Imgproc.threshold(mat, mat, configFilter.seekBars.get(0).value, configFilter.seekBars.get(1).value, Imgproc.THRESH_BINARY);
             }
-        }));
+        }, null));
 
         cacheFilters.add(new CacheFilter(context.getString(R.string.gray_image), null, new IChangeImage() {
             @Override
             public void Filter(Mat mat, ConfigFilter configFilter) {
                 Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY);
             }
-        }));
+        }, null));
 
         ConfigFilter configFilter4 = new ConfigFilter();
         configFilter4.createSeekBar(100, 1, 200, context.getString(R.string.opacity));
@@ -83,7 +85,7 @@ public class ListFilterFragment extends Fragment {
             public void Filter(Mat mat, ConfigFilter configFilter) {
                 Imgproc.GaussianBlur(mat, mat, new Size(configFilter.selected, configFilter.selected), configFilter.seekBars.get(0).value / 10.0);
             }
-        }));
+        }, null));
 
         ConfigFilter configFilter5 = new ConfigFilter();
         configFilter5.createSeekBar(-8, -20, 0, context.getString(R.string.brightness));
@@ -92,7 +94,7 @@ public class ListFilterFragment extends Fragment {
             public void Filter(Mat mat, ConfigFilter configFilter) {
                 Filter.lightBalanceGamma(mat, configFilter.seekBars.get(0).value / 10.0 * -1);
             }
-        }));
+        }, null));
 
         ConfigFilter configFilter6 = new ConfigFilter();
         configFilter6.createSeekBar(2, 2, 50, context.getString(R.string.darkness));
@@ -101,17 +103,25 @@ public class ListFilterFragment extends Fragment {
             public void Filter(Mat mat, ConfigFilter configFilter) {
                 Filter.lightBalanceGamma(mat, configFilter.seekBars.get(0).value);
             }
-        }));
+        }, null));
 
-        ConfigFilter configFilter7 = new ConfigFilter();
-        configFilter7.setSelected(0);
-        configFilter7.createSelection(2, context.getString(R.string.delete_blur));
-        configFilter7.createSelection(1, context.getString(R.string.delete_green));
-        configFilter7.createSelection(0, context.getString(R.string.delete_red));
-        cacheFilters.add(new CacheFilter(context.getString(R.string.delete_color), configFilter7, new IChangeImage() {
+//        ConfigFilter configFilter7 = new ConfigFilter();
+//        configFilter7.setSelected(0);
+//        configFilter7.createSelection(2, context.getString(R.string.delete_blur));
+//        configFilter7.createSelection(1, context.getString(R.string.delete_green));
+//        configFilter7.createSelection(0, context.getString(R.string.delete_red));
+//        cacheFilters.add(new CacheFilter(context.getString(R.string.delete_color), configFilter7, new IChangeImage() {
+//            @Override
+//            public void Filter(Mat mat, ConfigFilter configFilter) {
+//                Filter.deleteColor(mat, configFilter.selected);
+//            }
+//        }, null));
+
+        cacheFilters.add(new CacheFilter(context.getString(R.string.detect_eye), null, null, new IDetectFace() {
             @Override
-            public void Filter(Mat mat, ConfigFilter configFilter) {
-                Filter.deleteColor(mat, configFilter.selected);
+            public void detectFacialPart(Bitmap bitmap, Mat mat, ConfigFilter configFilter, ImageView imageView) {
+                FaceDetect faceDetect = new FaceDetect();
+                faceDetect.getBoundEye(bitmap, mat, null, imageView);
             }
         }));
     }
