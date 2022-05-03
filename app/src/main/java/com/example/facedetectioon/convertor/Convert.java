@@ -3,25 +3,41 @@ package com.example.facedetectioon.convertor;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
+import android.media.Image;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.util.Log;
 import android.widget.ImageView;
+
+import androidx.annotation.NonNull;
+import androidx.camera.core.ImageProxy;
 
 import com.example.facedetectioon.MainActivity;
 import com.example.facedetectioon.model.CacheFilter;
 import com.example.facedetectioon.model.CacheImage;
 
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
 public class Convert {
 
-    public static Bitmap readImageMatToBitmap(String path){
+    public static Bitmap readImageMatToBitmap(String path) {
         Mat mat = Imgcodecs.imread(path, Imgcodecs.IMREAD_UNCHANGED);
-        if(mat.cols() <= 0 || mat.rows() <= 0){
+        if (mat.cols() <= 0 || mat.rows() <= 0) {
             mat = Mat.zeros(100, 100, CvType.CV_8U);
         } else {
             resize(mat, 3);
@@ -32,8 +48,8 @@ public class Convert {
         return bitmap;
     }
 
-    public static Bitmap matToBitmap(Mat mat){
-        if(mat.cols() <= 0 || mat.rows() <= 0){
+    public static Bitmap matToBitmap(Mat mat) {
+        if (mat.cols() <= 0 || mat.rows() <= 0) {
             return null;
         }
         Bitmap bitmap = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
@@ -41,7 +57,7 @@ public class Convert {
         return bitmap;
     }
 
-    public static Bitmap readImage(String path){
+    public static Bitmap readImage(String path) {
         BitmapFactory.Options bmOptions = new BitmapFactory.Options();
         bmOptions.inMutable = true;
         bmOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -49,27 +65,87 @@ public class Convert {
         return bitmap;
     }
 
-    public static Bitmap createBitmapFromMat(Mat mat){
+    public static Bitmap createBitmapFromMat(Mat mat) {
         Bitmap bitmap = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(mat, bitmap);
         return bitmap;
     }
 
-    public static void resize(Mat mat, int size){
-        if(size <= 0){
+    public static void resize(Mat mat, int size) {
+        if (size <= 0) {
             size = 1;
         }
-        Size size1 = new Size(mat.width()/size, mat.height()/size);
+        Size size1 = new Size(mat.width() / size, mat.height() / size);
         Imgproc.resize(mat, mat, size1);
     }
 
-    public static Bitmap applyEffect(CacheFilter cacheFilter, Bitmap bitmap, ImageView imageView){
+    public static Mat imageProxyToMat(@NonNull ImageProxy imageProxy) {
+        ByteBuffer buffer;
+        int rowStride;
+        int pixelStride;
+        int width = imageProxy.getWidth();
+        int height = imageProxy.getHeight();
+        int offset = 0;
+
+        ImageProxy.PlaneProxy[] planes = imageProxy.getPlanes();
+        byte[] data = new byte[imageProxy.getWidth() * imageProxy.getHeight() * ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8];
+        byte[] rowData = new byte[planes[0].getRowStride()];
+
+        for (int i = 0; i < planes.length; i++) {
+            buffer = planes[i].getBuffer();
+            rowStride = planes[i].getRowStride();
+            pixelStride = planes[i].getPixelStride();
+
+            int w = (i == 0) ? width : width / 2;
+            int h = (i == 0) ? height : height / 2;
+            for (int row = 0; row < h; row++) {
+                int bytesPerPixel = ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8;
+                if (pixelStride == bytesPerPixel) {
+                    int length = w * bytesPerPixel;
+                    buffer.get(data, offset, length);
+
+                    if (h - row != 1) {
+                        buffer.position(buffer.position() + rowStride - length);
+                    }
+                    offset += length;
+                } else {
+
+
+                    if (h - row == 1) {
+                        buffer.get(rowData, 0, width - pixelStride + 1);
+                    } else {
+                        buffer.get(rowData, 0, rowStride);
+                    }
+
+                    for (int col = 0; col < w; col++) {
+                        data[offset++] = rowData[col * pixelStride];
+                    }
+                }
+            }
+        }
+
+        Mat mat = new Mat(height + height / 2, width, CvType.CV_8UC1);
+        mat.put(0, 0, data);
+
+        Mat rgbOut = new Mat(imageProxy.getHeight(), imageProxy.getWidth(), CvType.CV_8UC3);
+        Imgproc.cvtColor(mat, rgbOut, Imgproc.COLOR_YUV2RGB_I420);
+
+        Core.rotate(rgbOut, rgbOut, Core.ROTATE_90_CLOCKWISE);
+
+        return rgbOut;
+    }
+
+    public static void resize(Mat mat, Size size) {
+        Imgproc.resize(mat, mat, size);
+    }
+
+    public static Bitmap applyEffect(CacheFilter cacheFilter, Bitmap bitmap, ImageView imageView) {
         Mat mat = new Mat();
         Utils.bitmapToMat(bitmap, mat);
-        if(cacheFilter.getDetectFace() != null){
+        if (cacheFilter.getDetectFace() != null) {
             cacheFilter.getDetectFace().detectFacialPart(bitmap, mat, cacheFilter.getConfigFilter(), imageView);
         }
-        if(cacheFilter.getChangeImage() != null){
+        if (cacheFilter.getChangeImage() != null) {
             cacheFilter.getChangeImage().Filter(mat, cacheFilter.getConfigFilter());
             Bitmap bmNew = Convert.createBitmapFromMat(mat);
             cacheFilter.setBitmap(bmNew);
@@ -87,7 +163,7 @@ public class Convert {
 
         int scaleFactor = 1;
         if ((targetW > 0) || (targetH > 0)) {
-            scaleFactor = Math.min(photoW/targetW, photoH/targetH);
+            scaleFactor = Math.min(photoW / targetW, photoH / targetH);
         }
 
         bmOptions.inJustDecodeBounds = false;

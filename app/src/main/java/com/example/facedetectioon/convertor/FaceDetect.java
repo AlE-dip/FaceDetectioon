@@ -3,17 +3,24 @@ package com.example.facedetectioon.convertor;
 import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.media.Image;
 import android.util.Log;
 import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.camera.core.ImageProxy;
 
+import com.example.facedetectioon.CameraActivity;
 import com.example.facedetectioon.MainActivity;
 import com.example.facedetectioon.model.IChangeImage;
+import com.example.facedetectioon.model.cache.CacheDataFace;
+import com.example.facedetectioon.model.cache.CacheMat;
+import com.example.facedetectioon.model.cache.FaceContourData;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.mlkit.common.MlKitException;
 import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.common.internal.ImageConvertUtils;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceContour;
 import com.google.mlkit.vision.face.FaceDetection;
@@ -23,18 +30,21 @@ import com.google.mlkit.vision.face.FaceLandmark;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 public class FaceDetect {
 
     private FaceDetector detector;
+    public static CacheDataFace cacheDataFace;
 
     public FaceDetect() {
         // High-accuracy landmark detection and face classification
@@ -45,6 +55,7 @@ public class FaceDetect {
                         .build();
 
         detector = FaceDetection.getClient(highAccuracyOpts);
+        cacheDataFace = new CacheDataFace();
     }
 
     public void getBoundEye(Bitmap bitmap, Mat mat, IChangeImage changeImage, ImageView imageView){
@@ -264,7 +275,7 @@ public class FaceDetect {
                         });
     }
 
-    public void drawFace(InputImage inputImage, ImageView imageView, ImageProxy imageProxy, Bitmap bitmap) {
+    public void drawFace(InputImage inputImage, CacheMat cacheMat, ImageView imageView, ImageProxy imageProxy, long time) {
         Task<List<Face>> result = detector.process(inputImage)
                 .addOnSuccessListener(
                         new OnSuccessListener<List<Face>>() {
@@ -275,10 +286,10 @@ public class FaceDetect {
                                     Rect bounds = face.getBoundingBox();
                                     float rotY = face.getHeadEulerAngleY();  // Head is rotated to the right rotY degrees
                                     float rotZ = face.getHeadEulerAngleZ();  // Head is tilted sideways rotZ degrees
+                                    cacheDataFace.rect = bounds;
 
-                                    Paint.drawRect(bitmap, bounds);
-
-                                    ArrayList<FaceContourData> faceContourDatas = new ArrayList<>();
+                                    cacheDataFace.faceContourDatas = new ArrayList<>();
+                                    ArrayList<FaceContourData> faceContourDatas = cacheDataFace.faceContourDatas;
                                     faceContourDatas.add(new FaceContourData(face.getContour(FaceContour.LEFT_EYE), true));
                                     faceContourDatas.add(new FaceContourData(face.getContour(FaceContour.RIGHT_EYE), true));
                                     faceContourDatas.add(new FaceContourData(face.getContour(FaceContour.LEFT_EYEBROW_BOTTOM), false));
@@ -294,16 +305,8 @@ public class FaceDetect {
                                     faceContourDatas.add(new FaceContourData(face.getContour(FaceContour.LEFT_CHEEK), false));
                                     faceContourDatas.add(new FaceContourData(face.getContour(FaceContour.RIGHT_CHEEK), false));
 
-                                    for(FaceContourData faceContourData: faceContourDatas){
-                                        if(faceContourData.faceContour != null){
-                                            Paint.drawLines(bitmap, faceContourData.faceContour.getPoints(), faceContourData.close);
-                                        }
-                                    }
-
-//                                    // If landmark detection was enabled (mouth, ears, eyes, cheeks, and
-//                                    // nose available):
-
-                                    ArrayList<FaceLandmark> faceLandmarks = new ArrayList<>();
+                                    cacheDataFace.faceLandmarks = new ArrayList<>();
+                                    ArrayList<FaceLandmark> faceLandmarks = cacheDataFace.faceLandmarks;
                                     faceLandmarks.add(face.getLandmark(FaceLandmark.LEFT_EAR));
                                     faceLandmarks.add(face.getLandmark(FaceLandmark.RIGHT_EAR));
                                     faceLandmarks.add(face.getLandmark(FaceLandmark.LEFT_EYE));
@@ -314,19 +317,25 @@ public class FaceDetect {
                                     faceLandmarks.add(face.getLandmark(FaceLandmark.MOUTH_RIGHT));
                                     faceLandmarks.add(face.getLandmark(FaceLandmark.MOUTH_LEFT));
                                     faceLandmarks.add(face.getLandmark(FaceLandmark.NOSE_BASE));
+                                }
 
-                                    for (FaceLandmark faceLandmark: faceLandmarks){
-                                        if(faceLandmark != null){
-                                            Paint.drawPoint(bitmap, faceLandmark.getPosition());
+                                new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if(UtilFunction.twoThreadDone()){
+                                            imageProxy.close();
+                                            UtilFunction.paintFace(cacheMat.mat, cacheDataFace);
+                                            imageView.post(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    imageView.setImageBitmap(Convert.createBitmapFromMat(cacheMat.mat));
+                                                }
+                                            });
                                         }
                                     }
-
-                                    imageView.setImageBitmap(bitmap);
-                                }
-                                if(faces.size() == 0){
-                                    imageView.setImageBitmap(bitmap);
-                                }
-                                imageProxy.close();
+                                }).start();
+                                //imageProxy.close();
+                                //Log.d(MainActivity.FACE_DETECTION, "Time: " + ((System.currentTimeMillis() - time)));
                             }
                         })
                 .addOnFailureListener(
@@ -338,16 +347,6 @@ public class FaceDetect {
                                 imageProxy.close();
                             }
                         });
-    }
-
-    public class FaceContourData{
-        public FaceContour faceContour;
-        public boolean close;
-
-        public FaceContourData(FaceContour faceContour, boolean close) {
-            this.faceContour = faceContour;
-            this.close = close;
-        }
     }
 
 }

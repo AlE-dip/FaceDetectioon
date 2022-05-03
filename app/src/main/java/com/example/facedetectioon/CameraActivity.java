@@ -14,38 +14,30 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
 import android.annotation.SuppressLint;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.hardware.camera2.CameraCharacteristics;
+import android.graphics.ImageFormat;
 import android.media.Image;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
-import android.view.SurfaceView;
+import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.widget.ImageView;
 
 import com.example.facedetectioon.convertor.Convert;
 import com.example.facedetectioon.convertor.FaceDetect;
+import com.example.facedetectioon.convertor.Paint;
+import com.example.facedetectioon.convertor.UtilFunction;
+import com.example.facedetectioon.model.cache.CacheMat;
+import com.example.facedetectioon.model.cache.FaceContourData;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.mlkit.common.MlKitException;
 import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.common.internal.ImageConvertUtils;
 
-import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
-import org.opencv.android.JavaCamera2View;
-import org.opencv.android.JavaCameraView;
-import org.opencv.android.LoaderCallbackInterface;
-import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 
 public class CameraActivity extends AppCompatActivity {
 
@@ -74,7 +66,7 @@ public class CameraActivity extends AppCompatActivity {
         startCamera();
     }
 
-    public void startCamera(){
+    public void startCamera() {
         FaceDetect faceDetect = new FaceDetect();
 
         cameraProviderFuture = ProcessCameraProvider.getInstance(this);
@@ -92,9 +84,9 @@ public class CameraActivity extends AppCompatActivity {
 
     void bindPreview(@NonNull ProcessCameraProvider cameraProvider, FaceDetect faceDetect) {
 
-        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-        bmOptions.inMutable = true;
-        bmOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
+//        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+//        bmOptions.inMutable = true;
+//        bmOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
 
         Preview preview = new Preview.Builder().build();
 
@@ -106,41 +98,70 @@ public class CameraActivity extends AppCompatActivity {
                 new ImageAnalysis.Builder()
                         // enable the following line if RGBA output is needed.
                         //.setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                         .setTargetResolution(new Size(1280, 720))
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build();
 
-        imageAnalysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, new ImageAnalysis.Analyzer() {
+        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), new ImageAnalysis.Analyzer() {
             @Override
             public void analyze(@NonNull ImageProxy imageProxy) {
                 // insert your code here.
                 @SuppressLint("UnsafeOptInUsageError") Image mediaImage = imageProxy.getImage();
                 if (mediaImage != null) {
-                    InputImage image = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
-                    // Pass image to an ML Kit Vision API
-                    // ...
-                    try {
-                        Bitmap bitmap = ImageConvertUtils.getInstance().getUpRightBitmap(image);
-                        imMiniFrame.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                imMiniFrame.setImageBitmap(bitmap);
-                            }
-                        });
-                        faceDetect.drawFace(image, imDrawFace, imageProxy, bitmap);
+                    long time = System.currentTimeMillis();
 
-                    } catch (MlKitException e) {
-                        e.printStackTrace();
-                    }
+                    InputImage inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+
+                    CacheMat cacheMat = new CacheMat();
+
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            cacheMat.mat = Convert.imageProxyToMat(imageProxy);
+                            if(UtilFunction.twoThreadDone()){
+                                imageProxy.close();
+                                UtilFunction.paintFace(cacheMat.mat, FaceDetect.cacheDataFace);
+                                imDrawFace.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        imDrawFace.setImageBitmap(Convert.createBitmapFromMat(cacheMat.mat));
+                                    }
+                                });
+                            }
+                        }
+                    }).start();
+//                     Pass image to an ML Kit Vision API
+//                     ...
+                        //Bitmap bitmap = ImageConvertUtils.getInstance().getUpRightBitmap(inputImage);
+
+//                        imMiniFrame.post(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                imMiniFrame.setImageBitmap(bitmap);
+//                            }
+//                        });
+
+                        faceDetect.drawFace(inputImage, cacheMat, imDrawFace, imageProxy, time);
 
                 }
                 // after done, release the ImageProxy object
-               // imageProxy.close();
+                // imageProxy.close();
             }
         });
 
         preview.setSurfaceProvider(prShowFrameImage.getSurfaceProvider());
-        cameraProvider.bindToLifecycle((LifecycleOwner) CameraActivity.this, cameraSelector, imageAnalysis, preview);
+        cameraProvider.bindToLifecycle((LifecycleOwner) CameraActivity.this, cameraSelector, imageAnalysis);
+
+        imDrawFace.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+//                CameraSelector cameraSelector = new CameraSelector.Builder()
+//                        .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+//                        .build();
+//                cameraProvider.bindToLifecycle((LifecycleOwner) CameraActivity.this, cameraSelector, imageAnalysis, preview);
+            }
+        });
     }
 
     private void createView() {
