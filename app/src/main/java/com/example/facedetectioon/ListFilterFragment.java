@@ -6,6 +6,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.camera.core.ImageProxy;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -15,17 +16,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import com.example.facedetectioon.convertor.Convert;
 import com.example.facedetectioon.convertor.FaceDetect;
 import com.example.facedetectioon.convertor.Filter;
-import com.example.facedetectioon.model.CacheFilter;
+import com.example.facedetectioon.convertor.TimeLine;
+import com.example.facedetectioon.model.cache.CacheFilter;
 import com.example.facedetectioon.model.ConfigFilter;
 import com.example.facedetectioon.model.IChangeImage;
 import com.example.facedetectioon.model.IDetectFace;
 import com.example.facedetectioon.model.ListFilterAdapter;
 import com.example.facedetectioon.model.cache.CacheMat;
+import com.google.mlkit.vision.common.InputImage;
 
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -42,19 +43,24 @@ public class ListFilterFragment extends Fragment {
     private ImageView imageView;
     private CacheMat cacheMat;
     private CacheFilter cacheFilter;
+    private Mat avatar;
+    private FaceDetect faceDetect;
 
-    public ListFilterFragment(Context context,Bitmap bitmap, ImageView imageView) {
+    public ListFilterFragment(Context context, Bitmap bitmap, ImageView imageView) {
         this.context = context;
         this.bitmap = bitmap;
         this.imageView = imageView;
+        this.faceDetect = new FaceDetect();
         createOperations();
     }
 
-    public ListFilterFragment(Context context, CacheMat cacheMat, CacheFilter cacheFilter, ImageView imageView) {
+    public ListFilterFragment(Context context, CacheMat cacheMat, Mat avatar, CacheFilter cacheFilter, ImageView imageView) {
         this.context = context;
         this.cacheMat = cacheMat;
         this.imageView = imageView;
         this.cacheFilter = cacheFilter;
+        this.avatar = avatar;
+        this.faceDetect = new FaceDetect();
         createOperations();
     }
 
@@ -63,30 +69,28 @@ public class ListFilterFragment extends Fragment {
 
         cacheFilters.add(new CacheFilter(CacheFilter.TYPE_ALL, context.getString(R.string.default_image), null, new IChangeImage() {
             @Override
-            public void Filter(Mat mat, ConfigFilter configFilter) {
-                return;
+            public boolean Filter(Mat mat, Mat dst, ConfigFilter configFilter) {
+                return false;
             }
         }, null));
-
-        if(cacheFilter != null){
-            cacheFilter.setCache(cacheFilter);
-        }
 
         ConfigFilter configFilter2 = new ConfigFilter();
         configFilter2.createSeekBar(80, 0, 255, context.getString(R.string.thresh));
         configFilter2.createSeekBar(255, 0, 255, context.getString(R.string.maxval));
-        cacheFilters.add(new CacheFilter(CacheFilter.TYPE_ALL, context.getString(R.string.binary_image), configFilter2,new IChangeImage() {
+        cacheFilters.add(new CacheFilter(CacheFilter.TYPE_ALL, context.getString(R.string.binary_image), configFilter2, new IChangeImage() {
             @Override
-            public void Filter(Mat mat, ConfigFilter configFilter) {
-                Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY);
-                Imgproc.threshold(mat, mat, configFilter.seekBars.get(0).value, configFilter.seekBars.get(1).value, Imgproc.THRESH_BINARY);
+            public boolean Filter(Mat mat, Mat dst, ConfigFilter configFilter) {
+                Imgproc.cvtColor(mat, dst, Imgproc.COLOR_BGR2GRAY);
+                Imgproc.threshold(dst, dst, configFilter.seekBars.get(0).value, configFilter.seekBars.get(1).value, Imgproc.THRESH_BINARY);
+                return true;
             }
         }, null));
 
         cacheFilters.add(new CacheFilter(CacheFilter.TYPE_ALL, context.getString(R.string.gray_image), null, new IChangeImage() {
             @Override
-            public void Filter(Mat mat, ConfigFilter configFilter) {
-                Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY);
+            public boolean Filter(Mat mat, Mat dst, ConfigFilter configFilter) {
+                Imgproc.cvtColor(mat, dst, Imgproc.COLOR_BGR2GRAY);
+                return true;
             }
         }, null));
 
@@ -98,8 +102,9 @@ public class ListFilterFragment extends Fragment {
         configFilter4.createSelection(51, "51");
         cacheFilters.add(new CacheFilter(CacheFilter.TYPE_ALL, context.getString(R.string.gaussian_blur_image), configFilter4, new IChangeImage() {
             @Override
-            public void Filter(Mat mat, ConfigFilter configFilter) {
-                Imgproc.GaussianBlur(mat, mat, new Size(configFilter.selected, configFilter.selected), configFilter.seekBars.get(0).value / 10.0);
+            public boolean Filter(Mat mat, Mat dst, ConfigFilter configFilter) {
+                Imgproc.GaussianBlur(mat, dst, new Size(configFilter.selected, configFilter.selected), configFilter.seekBars.get(0).value / 10.0);
+                return true;
             }
         }, null));
 
@@ -107,8 +112,9 @@ public class ListFilterFragment extends Fragment {
         configFilter5.createSeekBar(-8, -20, 0, context.getString(R.string.brightness));
         cacheFilters.add(new CacheFilter(CacheFilter.TYPE_ALL, context.getString(R.string.light_balance_gamma), configFilter5, new IChangeImage() {
             @Override
-            public void Filter(Mat mat, ConfigFilter configFilter) {
-                Filter.lightBalanceGamma(mat, configFilter.seekBars.get(0).value / 10.0 * -1);
+            public boolean Filter(Mat mat, Mat dst, ConfigFilter configFilter) {
+                Filter.lightBalanceGamma(mat, dst, configFilter.seekBars.get(0).value / 10.0 * -1);
+                return true;
             }
         }, null));
 
@@ -116,8 +122,9 @@ public class ListFilterFragment extends Fragment {
         configFilter6.createSeekBar(2, 2, 50, context.getString(R.string.darkness));
         cacheFilters.add(new CacheFilter(CacheFilter.TYPE_ALL, context.getString(R.string.dark_image), configFilter6, new IChangeImage() {
             @Override
-            public void Filter(Mat mat, ConfigFilter configFilter) {
-                Filter.lightBalanceGamma(mat, configFilter.seekBars.get(0).value);
+            public boolean Filter(Mat mat, Mat dst, ConfigFilter configFilter) {
+                Filter.lightBalanceGamma(mat, dst, configFilter.seekBars.get(0).value);
+                return true;
             }
         }, null));
 
@@ -133,13 +140,14 @@ public class ListFilterFragment extends Fragment {
 //            }
 //        }, null));
 
-        cacheFilters.add(new CacheFilter(CacheFilter.TYPE_IMAGE, context.getString(R.string.detect_eye), null, null, new IDetectFace() {
+        cacheFilters.add(new CacheFilter(CacheFilter.TYPE_CAMERA, context.getString(R.string.draw_face), null, null, new IDetectFace() {
             @Override
-            public void detectFacialPart(Bitmap bitmap, Mat mat, ConfigFilter configFilter, ImageView imageView) {
-                FaceDetect faceDetect = new FaceDetect();
-                faceDetect.getBoundEye(bitmap, mat, null, imageView);
+            public void detectFacialPart(InputImage inputImage, CacheMat cacheMat, CacheFilter chooseCacheFilter, ImageView imageView, ImageProxy imageProxy, TimeLine timeLine) {
+                faceDetect.drawFace(inputImage, cacheMat, chooseCacheFilter, imageView, imageProxy, timeLine);
             }
         }));
+
+        cacheFilter.setCache(cacheFilters.get(6));
     }
 
     @Override
@@ -156,10 +164,10 @@ public class ListFilterFragment extends Fragment {
         rcListFilter = view.findViewById(R.id.rcListFilter);
         rcListConfig = view.findViewById(R.id.rcListConfig);
 
-        if(bitmap != null){
+        if (bitmap != null) {
             listFilterAdapter = new ListFilterAdapter(CacheFilter.TYPE_IMAGE, cacheFilters, context, bitmap, imageView, rcListConfig);
         } else {
-            listFilterAdapter = new ListFilterAdapter(CacheFilter.TYPE_CAMERA, cacheFilters, context, cacheMat, cacheFilter, imageView, rcListConfig);
+            listFilterAdapter = new ListFilterAdapter(CacheFilter.TYPE_CAMERA, cacheFilters, context, cacheMat, avatar, cacheFilter, imageView, rcListConfig);
         }
         rcListFilter.setAdapter(listFilterAdapter);
         rcListFilter.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false));

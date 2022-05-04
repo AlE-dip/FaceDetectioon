@@ -24,6 +24,7 @@
     <string name="delete_red">Đỏ</string>
     <string name="delete_green">Lục</string>
     <string name="detect_eye">Chỉnh Mắt</string>
+    <string name="draw_face">Vẽ Mặt</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

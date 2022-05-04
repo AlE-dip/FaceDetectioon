@@ -3,45 +3,37 @@ package com.example.facedetectioon;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
-import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.LifecycleOwner;
 
 import android.annotation.SuppressLint;
-import android.graphics.ImageFormat;
 import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.util.Size;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import com.example.facedetectioon.convertor.Convert;
 import com.example.facedetectioon.convertor.FaceDetect;
-import com.example.facedetectioon.convertor.Filter;
-import com.example.facedetectioon.convertor.Paint;
+import com.example.facedetectioon.convertor.TimeLine;
 import com.example.facedetectioon.convertor.UtilFunction;
-import com.example.facedetectioon.model.CacheFilter;
+import com.example.facedetectioon.model.cache.CacheFilter;
 import com.example.facedetectioon.model.cache.CacheMat;
-import com.example.facedetectioon.model.cache.FaceContourData;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mlkit.vision.common.InputImage;
 
-import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.Utils;
 import org.opencv.core.CvType;
-import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -52,6 +44,7 @@ public class CameraActivity extends AppCompatActivity {
     private ImageView imDrawFace;
     private CacheMat cacheMat;
     private CacheFilter chooseCacheFilter;
+    private TimeLine timeLine;
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     @Override
@@ -68,10 +61,16 @@ public class CameraActivity extends AppCompatActivity {
 
         createView();
 
+        timeLine = new TimeLine(imDrawFace);
         cacheMat = new CacheMat();
+        try {
+            cacheMat.mat = Utils.loadResource(this, R.drawable.face, Imgcodecs.IMREAD_COLOR);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         chooseCacheFilter = new CacheFilter();
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.replace(R.id.fmFilter, new ListFilterFragment(CameraActivity.this, cacheMat, chooseCacheFilter, imDrawFace));
+        ft.replace(R.id.fmFilter, new ListFilterFragment(CameraActivity.this, cacheMat, cacheMat.mat, chooseCacheFilter, imDrawFace));
         ft.commit();
 
         startCamera();
@@ -114,28 +113,8 @@ public class CameraActivity extends AppCompatActivity {
                 // insert your code here.
                 @SuppressLint("UnsafeOptInUsageError") Image mediaImage = imageProxy.getImage();
                 if (mediaImage != null) {
-                    long time = System.currentTimeMillis();
-
                     InputImage inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
-
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            cacheMat.mat = Convert.imageProxyToMat(imageProxy);
-                            imageProxy.close();
-                            //UtilFunction.paintFace(cacheMat.mat, FaceDetect.cacheDataFace);
-                            Convert.applyEffect(chooseCacheFilter, null, cacheMat, imDrawFace);
-                            imDrawFace.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    imDrawFace.setImageBitmap(Convert.createBitmapFromMat(cacheMat.mat));
-                                }
-                            });
-                        }
-                    }).start();
-
-                    //faceDetect.drawFace(inputImage, cacheMat, chooseCacheFilter, imDrawFace, imageProxy, time);
-
+                    UtilFunction.faceAndEffect(inputImage, cacheMat, chooseCacheFilter, imageProxy, imDrawFace, timeLine);
                 }
                 // after done, release the ImageProxy object
                 // imageProxy.close();

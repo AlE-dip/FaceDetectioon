@@ -1,27 +1,18 @@
 package com.example.facedetectioon.convertor;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.Rect;
-import android.graphics.YuvImage;
-import android.media.Image;
-import android.renderscript.Element;
-import android.renderscript.RenderScript;
-import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.util.Log;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.camera.core.ImageProxy;
 
-import com.example.facedetectioon.CameraActivity;
 import com.example.facedetectioon.MainActivity;
-import com.example.facedetectioon.model.CacheFilter;
-import com.example.facedetectioon.model.CacheImage;
+import com.example.facedetectioon.model.cache.CacheFilter;
 import com.example.facedetectioon.model.cache.CacheMat;
+import com.google.mlkit.vision.common.InputImage;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -31,8 +22,6 @@ import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class Convert {
@@ -141,31 +130,32 @@ public class Convert {
         Imgproc.resize(mat, mat, size);
     }
 
-    public synchronized static void applyEffect(CacheFilter cacheFilter, Bitmap bitmap, CacheMat cacheMat, ImageView imageView) {
-        Mat mat = null;
+    public static Bitmap applyEffect(CacheFilter cacheFilter, Bitmap bitmap, Mat mat, ImageView imageView) {
         if(bitmap != null){
             mat = new Mat();
             Utils.bitmapToMat(bitmap, mat);
-        } else if (cacheMat.mat != null){
-            mat = cacheMat.mat;
-        } else {
+        }  else if(mat == null) {
             mat  = Mat.zeros(new Size(100, 100), CvType.CV_8UC3);
         }
-
-        if (cacheFilter.getDetectFace() != null) {
-            cacheFilter.getDetectFace().detectFacialPart(bitmap, mat, cacheFilter.getConfigFilter(), imageView);
-        }
+        Mat dst = new Mat(mat.size(), mat.type());
         if (cacheFilter.getChangeImage() != null) {
-            cacheFilter.getChangeImage().Filter(mat, cacheFilter.getConfigFilter());
-            Bitmap bmNew = Convert.createBitmapFromMat(mat);
-            cacheFilter.setBitmap(bmNew);
-            imageView.post(new Runnable() {
-                @Override
-                public void run() {
-                    imageView.setImageBitmap(bmNew);
-                }
-            });
+            Bitmap bmNew;
+            if(cacheFilter.getChangeImage().Filter(mat, dst, cacheFilter.getConfigFilter())){
+                bmNew = Convert.createBitmapFromMat(dst);
+            } else {
+                bmNew = Convert.createBitmapFromMat(mat);
+            }
+            if(imageView != null){
+                imageView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        imageView.setImageBitmap(bmNew);
+                    }
+                });
+            }
+            return bmNew;
         }
+        return null;
     }
 
     public static Bitmap resizeBitmap(String photoPath, int targetW, int targetH) {

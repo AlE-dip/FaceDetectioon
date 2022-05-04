@@ -7,6 +7,8 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 
 import com.example.facedetectioon.model.cache.CacheDataFace;
+import com.example.facedetectioon.model.cache.FaceContourData;
+import com.google.mlkit.vision.face.FaceLandmark;
 
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -31,6 +33,29 @@ public class Paint {
     public static void drawRect(Mat mat, CacheDataFace cacheDataFace) {
         Rect rect = cacheDataFace.rect;
         Imgproc.rectangle(mat, new org.opencv.core.Rect(new Point(rect.left, rect.top), new Point(rect.right, rect.bottom)), new Scalar(255, 0, 0), 2);
+    }
+
+    public static void paintFace(Mat mat, CacheDataFace cacheDataFace) {
+        if (cacheDataFace.rect != null) {
+            Paint.drawRect(mat, FaceDetect.cacheDataFace);
+            cacheDataFace.rect = null;
+        }
+        if (cacheDataFace.faceContourDatas != null) {
+            for (FaceContourData faceContourData : cacheDataFace.faceContourDatas) {
+                if (faceContourData.faceContour != null) {
+                    Paint.drawLines(mat, faceContourData.faceContour.getPoints(), faceContourData.close);
+                }
+            }
+            cacheDataFace.faceContourDatas = null;
+        }
+        if (cacheDataFace.faceLandmarks != null) {
+            for (FaceLandmark faceLandmark : cacheDataFace.faceLandmarks) {
+                if (faceLandmark != null) {
+                    Paint.drawPoint(mat, faceLandmark.getPosition());
+                }
+            }
+            cacheDataFace.faceLandmarks = null;
+        }
     }
 
     public static void drawLines(Bitmap bitmap, List<PointF> points, boolean closed) {

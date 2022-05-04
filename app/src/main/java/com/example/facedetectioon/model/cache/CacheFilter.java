@@ -1,6 +1,11 @@
-package com.example.facedetectioon.model;
+package com.example.facedetectioon.model.cache;
 
 import android.graphics.Bitmap;
+
+import com.example.facedetectioon.model.ConfigFilter;
+import com.example.facedetectioon.model.ContentShare;
+import com.example.facedetectioon.model.IChangeImage;
+import com.example.facedetectioon.model.IDetectFace;
 
 public class CacheFilter {
     public static int TYPE_IMAGE = 1;

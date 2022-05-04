@@ -7,7 +7,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextClock;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,10 +15,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.facedetectioon.R;
 import com.example.facedetectioon.convertor.Convert;
+import com.example.facedetectioon.model.cache.CacheFilter;
 import com.example.facedetectioon.model.cache.CacheMat;
-
-import org.opencv.android.Utils;
-import org.opencv.core.Mat;
 
 public class SelectionAdapter extends RecyclerView.Adapter<SelectionAdapter.ViewHolder>{
 
@@ -72,7 +69,7 @@ public class SelectionAdapter extends RecyclerView.Adapter<SelectionAdapter.View
 
                 cacheFilter.getConfigFilter().setSelected(selection.value);
 
-                Convert.applyEffect(cacheFilter, bitmap, cacheMat, imageView);
+                Convert.applyEffect(cacheFilter, bitmap, cacheMat.mat, imageView);
             }
         });
     }

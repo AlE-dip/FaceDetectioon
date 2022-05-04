@@ -225,7 +225,7 @@ public class Filter {
     }
 
     //f13 = 0.5
-    public static void lightBalanceGamma(Mat src, double gamma) {
+    public static void lightBalanceGamma(Mat src, Mat dst, double gamma) {
         Mat lookUpTable = new Mat(1, 256, CvType.CV_8U);
         for (int i = 0; i < 256; i++) {
             double[] point = lookUpTable.get(0, i);
@@ -233,7 +233,7 @@ public class Filter {
             lookUpTable.put(0, i, point);
         }
 
-        Core.LUT(src, lookUpTable, src);
+        Core.LUT(src, lookUpTable, dst);
     }
 
 }
