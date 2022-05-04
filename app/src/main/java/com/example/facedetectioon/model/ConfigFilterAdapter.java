@@ -20,6 +20,7 @@ import com.example.facedetectioon.MainActivity;
 import com.example.facedetectioon.R;
 import com.example.facedetectioon.convertor.Convert;
 import com.example.facedetectioon.convertor.Filter;
+import com.example.facedetectioon.model.cache.CacheMat;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
@@ -30,12 +31,20 @@ public class ConfigFilterAdapter extends RecyclerView.Adapter<ConfigFilterAdapte
     private CacheFilter cacheFilter;
     private ImageView imageView;
     private Bitmap bitmap;
+    private CacheMat cacheMat;
 
     public ConfigFilterAdapter(Context context, CacheFilter cacheFilter, ImageView imageView, Bitmap bitmap) {
         this.context = context;
         this.cacheFilter = cacheFilter;
         this.imageView = imageView;
         this.bitmap = bitmap;
+    }
+
+    public ConfigFilterAdapter(Context context, CacheFilter cacheFilter, ImageView imageView, CacheMat cacheMat) {
+        this.context = context;
+        this.cacheFilter = cacheFilter;
+        this.imageView = imageView;
+        this.cacheMat = cacheMat;
     }
 
     @NonNull
@@ -63,12 +72,7 @@ public class ConfigFilterAdapter extends RecyclerView.Adapter<ConfigFilterAdapte
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                     sb.setValue(seekBar.getProgress());
-
-                    Bitmap bmNew = Convert.applyEffect(cacheFilter, bitmap, imageView);
-
-                    if(bmNew != null){
-                        imageView.setImageBitmap(bmNew);
-                    }
+                    Convert.applyEffect(cacheFilter, bitmap, cacheMat, imageView);
                 }
 
                 @Override
@@ -95,8 +99,12 @@ public class ConfigFilterAdapter extends RecyclerView.Adapter<ConfigFilterAdapte
         } else {
             holder.sbConfig.setVisibility(View.GONE);
             holder.txNameSeekBar.setVisibility(View.GONE);
-
-            SelectionAdapter selectionAdapter = new SelectionAdapter(context, cacheFilter, bitmap, imageView);
+            SelectionAdapter selectionAdapter;
+            if(bitmap != null){
+                selectionAdapter = new SelectionAdapter(context, cacheFilter, bitmap, imageView);
+            } else {
+                selectionAdapter = new SelectionAdapter(context, cacheFilter, cacheMat, imageView);
+            }
             holder.rcListSelection.setAdapter(selectionAdapter);
             holder.rcListSelection.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false));
         }

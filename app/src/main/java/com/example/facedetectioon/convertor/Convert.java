@@ -17,9 +17,11 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.camera.core.ImageProxy;
 
+import com.example.facedetectioon.CameraActivity;
 import com.example.facedetectioon.MainActivity;
 import com.example.facedetectioon.model.CacheFilter;
 import com.example.facedetectioon.model.CacheImage;
+import com.example.facedetectioon.model.cache.CacheMat;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -139,9 +141,17 @@ public class Convert {
         Imgproc.resize(mat, mat, size);
     }
 
-    public static Bitmap applyEffect(CacheFilter cacheFilter, Bitmap bitmap, ImageView imageView) {
-        Mat mat = new Mat();
-        Utils.bitmapToMat(bitmap, mat);
+    public synchronized static void applyEffect(CacheFilter cacheFilter, Bitmap bitmap, CacheMat cacheMat, ImageView imageView) {
+        Mat mat = null;
+        if(bitmap != null){
+            mat = new Mat();
+            Utils.bitmapToMat(bitmap, mat);
+        } else if (cacheMat.mat != null){
+            mat = cacheMat.mat;
+        } else {
+            mat  = Mat.zeros(new Size(100, 100), CvType.CV_8UC3);
+        }
+
         if (cacheFilter.getDetectFace() != null) {
             cacheFilter.getDetectFace().detectFacialPart(bitmap, mat, cacheFilter.getConfigFilter(), imageView);
         }
@@ -149,9 +159,13 @@ public class Convert {
             cacheFilter.getChangeImage().Filter(mat, cacheFilter.getConfigFilter());
             Bitmap bmNew = Convert.createBitmapFromMat(mat);
             cacheFilter.setBitmap(bmNew);
-            return bmNew;
+            imageView.post(new Runnable() {
+                @Override
+                public void run() {
+                    imageView.setImageBitmap(bmNew);
+                }
+            });
         }
-        return null;
     }
 
     public static Bitmap resizeBitmap(String photoPath, int targetW, int targetH) {

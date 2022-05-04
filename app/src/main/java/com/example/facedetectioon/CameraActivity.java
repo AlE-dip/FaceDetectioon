@@ -11,6 +11,7 @@ import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.LifecycleOwner;
 
 import android.annotation.SuppressLint;
@@ -23,30 +24,34 @@ import android.util.Size;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import com.example.facedetectioon.convertor.Convert;
 import com.example.facedetectioon.convertor.FaceDetect;
+import com.example.facedetectioon.convertor.Filter;
 import com.example.facedetectioon.convertor.Paint;
 import com.example.facedetectioon.convertor.UtilFunction;
+import com.example.facedetectioon.model.CacheFilter;
 import com.example.facedetectioon.model.cache.CacheMat;
 import com.example.facedetectioon.model.cache.FaceContourData;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mlkit.vision.common.InputImage;
 
 import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.Utils;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 public class CameraActivity extends AppCompatActivity {
 
-    private PreviewView prShowFrameImage;
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
-    private Camera camera;
-    private ImageView imDrawFace, imMiniFrame;
-    private CameraBridgeViewBase mOpenCvCameraView;
-
+    private ImageView imDrawFace;
+    private CacheMat cacheMat;
+    private CacheFilter chooseCacheFilter;
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     @Override
@@ -62,6 +67,12 @@ public class CameraActivity extends AppCompatActivity {
         }
 
         createView();
+
+        cacheMat = new CacheMat();
+        chooseCacheFilter = new CacheFilter();
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.fmFilter, new ListFilterFragment(CameraActivity.this, cacheMat, chooseCacheFilter, imDrawFace));
+        ft.commit();
 
         startCamera();
     }
@@ -83,12 +94,6 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     void bindPreview(@NonNull ProcessCameraProvider cameraProvider, FaceDetect faceDetect) {
-
-//        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-//        bmOptions.inMutable = true;
-//        bmOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
-
-        Preview preview = new Preview.Builder().build();
 
         CameraSelector cameraSelector = new CameraSelector.Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK)
@@ -113,36 +118,23 @@ public class CameraActivity extends AppCompatActivity {
 
                     InputImage inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
 
-                    CacheMat cacheMat = new CacheMat();
-
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
                             cacheMat.mat = Convert.imageProxyToMat(imageProxy);
-                            if(UtilFunction.twoThreadDone()){
-                                imageProxy.close();
-                                UtilFunction.paintFace(cacheMat.mat, FaceDetect.cacheDataFace);
-                                imDrawFace.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        imDrawFace.setImageBitmap(Convert.createBitmapFromMat(cacheMat.mat));
-                                    }
-                                });
-                            }
+                            imageProxy.close();
+                            //UtilFunction.paintFace(cacheMat.mat, FaceDetect.cacheDataFace);
+                            Convert.applyEffect(chooseCacheFilter, null, cacheMat, imDrawFace);
+                            imDrawFace.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    imDrawFace.setImageBitmap(Convert.createBitmapFromMat(cacheMat.mat));
+                                }
+                            });
                         }
                     }).start();
-//                     Pass image to an ML Kit Vision API
-//                     ...
-                        //Bitmap bitmap = ImageConvertUtils.getInstance().getUpRightBitmap(inputImage);
 
-//                        imMiniFrame.post(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                imMiniFrame.setImageBitmap(bitmap);
-//                            }
-//                        });
-
-                        faceDetect.drawFace(inputImage, cacheMat, imDrawFace, imageProxy, time);
+                    //faceDetect.drawFace(inputImage, cacheMat, chooseCacheFilter, imDrawFace, imageProxy, time);
 
                 }
                 // after done, release the ImageProxy object
@@ -150,7 +142,6 @@ public class CameraActivity extends AppCompatActivity {
             }
         });
 
-        preview.setSurfaceProvider(prShowFrameImage.getSurfaceProvider());
         cameraProvider.bindToLifecycle((LifecycleOwner) CameraActivity.this, cameraSelector, imageAnalysis);
 
         imDrawFace.setOnClickListener(new View.OnClickListener() {
@@ -165,8 +156,6 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void createView() {
-        prShowFrameImage = findViewById(R.id.prShowFrameImage);
         imDrawFace = findViewById(R.id.imDrawFace);
-        imMiniFrame = findViewById(R.id.imMiniFrame);
     }
 }

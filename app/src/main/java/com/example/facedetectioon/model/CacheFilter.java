@@ -3,14 +3,20 @@ package com.example.facedetectioon.model;
 import android.graphics.Bitmap;
 
 public class CacheFilter {
+    public static int TYPE_IMAGE = 1;
+    public static int TYPE_CAMERA = 2;
+    public static int TYPE_ALL = 3;
     private long id;
     private String name;
     private Bitmap bitmap;
     private ConfigFilter configFilter;
     private IChangeImage changeImage;
     private IDetectFace detectFace;
+    private int type;
 
-    public CacheFilter(String name, ConfigFilter configFilter, IChangeImage changeImage, IDetectFace detectFace) {
+
+    public CacheFilter(int type, String name, ConfigFilter configFilter, IChangeImage changeImage, IDetectFace detectFace) {
+        this.type = type;
         this.id = ContentShare.getMaxId();
         this.name = name;
         this.configFilter = configFilter;
@@ -18,8 +24,34 @@ public class CacheFilter {
         this.detectFace = detectFace;
     }
 
+    public CacheFilter() {
+        this.type = 0;
+        this.id = 0;
+        this.name = "";
+        this.configFilter = null;
+        this.changeImage = null;
+        this.detectFace = null;
+    }
+
+    public void setCache(CacheFilter cacheFilter){
+        type = cacheFilter.getType();
+        id = cacheFilter.getId();
+        name = cacheFilter.getName();
+        configFilter = cacheFilter.getConfigFilter();
+        changeImage = cacheFilter.getChangeImage();
+        detectFace = cacheFilter.getDetectFace();
+    }
+
     public IDetectFace getDetectFace() {
         return detectFace;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
     }
 
     public void setDetectFace(IDetectFace detectFace) {

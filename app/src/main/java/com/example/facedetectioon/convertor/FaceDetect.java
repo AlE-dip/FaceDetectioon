@@ -11,6 +11,7 @@ import androidx.camera.core.ImageProxy;
 
 import com.example.facedetectioon.CameraActivity;
 import com.example.facedetectioon.MainActivity;
+import com.example.facedetectioon.model.CacheFilter;
 import com.example.facedetectioon.model.IChangeImage;
 import com.example.facedetectioon.model.cache.CacheDataFace;
 import com.example.facedetectioon.model.cache.CacheMat;
@@ -275,7 +276,7 @@ public class FaceDetect {
                         });
     }
 
-    public void drawFace(InputImage inputImage, CacheMat cacheMat, ImageView imageView, ImageProxy imageProxy, long time) {
+    public void drawFace(InputImage inputImage, CacheMat cacheMat, CacheFilter chooseCacheFilter, ImageView imageView, ImageProxy imageProxy, long time) {
         Task<List<Face>> result = detector.process(inputImage)
                 .addOnSuccessListener(
                         new OnSuccessListener<List<Face>>() {
@@ -324,7 +325,8 @@ public class FaceDetect {
                                     public void run() {
                                         if(UtilFunction.twoThreadDone()){
                                             imageProxy.close();
-                                            UtilFunction.paintFace(cacheMat.mat, cacheDataFace);
+                                            //UtilFunction.paintFace(cacheMat.mat, cacheDataFace);
+                                            Convert.applyEffect(chooseCacheFilter, null, cacheMat, imageView);
                                             imageView.post(new Runnable() {
                                                 @Override
                                                 public void run() {

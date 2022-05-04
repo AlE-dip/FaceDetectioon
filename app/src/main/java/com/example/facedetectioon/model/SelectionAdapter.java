@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.facedetectioon.R;
 import com.example.facedetectioon.convertor.Convert;
+import com.example.facedetectioon.model.cache.CacheMat;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
@@ -27,11 +28,19 @@ public class SelectionAdapter extends RecyclerView.Adapter<SelectionAdapter.View
     private ImageView imageView;
     private Bitmap bitmap;
     private ViewHolder cacheViewCLick;
+    private CacheMat cacheMat;
 
     public SelectionAdapter(Context context, CacheFilter cacheFilter, Bitmap bitmap, ImageView imageView) {
         this.context = context;
         this.cacheFilter = cacheFilter;
         this.bitmap = bitmap;
+        this.imageView = imageView;
+    }
+
+    public SelectionAdapter(Context context, CacheFilter cacheFilter, CacheMat cacheMat, ImageView imageView) {
+        this.context = context;
+        this.cacheFilter = cacheFilter;
+        this.cacheMat = cacheMat;
         this.imageView = imageView;
     }
 
@@ -62,11 +71,8 @@ public class SelectionAdapter extends RecyclerView.Adapter<SelectionAdapter.View
                 holder.txSelector.setBackgroundColor(context.getColor(R.color.gray));
 
                 cacheFilter.getConfigFilter().setSelected(selection.value);
-                Bitmap bmNew = Convert.applyEffect(cacheFilter, bitmap, imageView);
 
-                if(bmNew != null){
-                    imageView.setImageBitmap(bmNew);
-                }
+                Convert.applyEffect(cacheFilter, bitmap, cacheMat, imageView);
             }
         });
     }

@@ -3,6 +3,7 @@ package com.example.facedetectioon.model;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,15 +15,17 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.facedetectioon.EditPictureActivity;
+import com.example.facedetectioon.MainActivity;
 import com.example.facedetectioon.R;
 import com.example.facedetectioon.convertor.Convert;
+import com.example.facedetectioon.model.cache.CacheMat;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.util.ArrayList;
 
-public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.ViewHolder>{
+public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.ViewHolder> {
 
     private ArrayList<CacheFilter> cacheFilters;
     private Context context;
@@ -30,13 +33,30 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
     private Bitmap bitmap;
     private ViewHolder cacheViewClick;
     private RecyclerView rcListConfig;
+    private CacheMat cacheMat;
+    public CacheFilter cacheFilter;
+    private int type;
+    private int index;
 
-    public ListFilterAdapter(ArrayList<CacheFilter> cacheFilters, Context context, Bitmap bitmap, ImageView imageView, RecyclerView rcListConfig) {
+    public ListFilterAdapter(int type, ArrayList<CacheFilter> cacheFilters, Context context, Bitmap bitmap, ImageView imageView, RecyclerView rcListConfig) {
+        this.type = type;
         this.cacheFilters = cacheFilters;
         this.context = context;
         this.imageView = imageView;
         this.bitmap = bitmap;
         this.rcListConfig = rcListConfig;
+        index = 0;
+    }
+
+    public ListFilterAdapter(int type, ArrayList<CacheFilter> cacheFilters, Context context, CacheMat cacheMat, CacheFilter cacheFilter, ImageView imageView, RecyclerView rcListConfig) {
+        this.type = type;
+        this.cacheFilters = cacheFilters;
+        this.context = context;
+        this.imageView = imageView;
+        this.cacheMat = cacheMat;
+        this.rcListConfig = rcListConfig;
+        this.cacheFilter = cacheFilter;
+        index = 0;
     }
 
     @NonNull
@@ -49,53 +69,47 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
 
     @Override
     public void onBindViewHolder(@NonNull ListFilterAdapter.ViewHolder holder, int position) {
+        CacheFilter cacheFilter = cacheFilters.get(position + index);
+        if (cacheFilter.getType() == type || cacheFilter.getType() == CacheFilter.TYPE_ALL) {
+            bindView(holder, position + index);
+        } else {
+            index++;
+            for (int i = position + index; i < cacheFilters.size(); i++) {
+                CacheFilter cf = cacheFilters.get(position + index);
+                if (cf.getType() == type || cf.getType() == CacheFilter.TYPE_ALL) {
+                    break;
+                } else {
+                    index++;
+                }
+            }
+            bindView(holder, position + index);
+        }
+    }
+
+    private void bindView(ViewHolder holder, int position) {
         CacheFilter cacheFilter = cacheFilters.get(position);
         holder.id = cacheFilter.getId();
         holder.imImage.setImageResource(R.color.white);
         holder.txName.setText(cacheFilter.getName());
         holder.imConfig.setVisibility(View.GONE);
 
-        if (cacheFilter.getBitmap() == null) {
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-
-                    Bitmap bmNew = Convert.applyEffect(cacheFilter, bitmap, holder.imImage);
-                    if(bmNew != null){
-                        holder.imImage.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (holder.id == cacheFilter.getId()) {
-                                    holder.imImage.setImageBitmap(bmNew);
-                                }
-                            }
-                        });
-                    }
-                }
-            }).start();
-            holder.imImage.setOnClickListener(createListenerImage(cacheFilter, holder));
-        } else {
-            holder.imImage.setImageBitmap(cacheFilter.getBitmap());
-            holder.imImage.setOnClickListener(createListenerImage(cacheFilter, holder));
-        }
+        Convert.applyEffect(cacheFilter, bitmap, cacheMat, holder.imImage);
+        holder.imImage.setOnClickListener(createListenerImage(this, cacheFilter, holder));
     }
 
-    private View.OnClickListener createListenerImage(CacheFilter cacheFilter, ViewHolder holder){
+    private View.OnClickListener createListenerImage(ListFilterAdapter listFilterAdapter, CacheFilter cacheFilter, ViewHolder holder) {
         return new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(cacheFilter.getChangeImage() != null){
-                    imageView.setImageBitmap(cacheFilter.getBitmap());
-                } else {
-                    Convert.applyEffect(cacheFilter, bitmap, imageView);
-                }
+                Convert.applyEffect(cacheFilter, bitmap, cacheMat, imageView);
 
-                if(cacheViewClick != null && cacheViewClick.imConfig.getVisibility() == View.VISIBLE){
+                listFilterAdapter.cacheFilter.setCache(cacheFilter);
+                if (cacheViewClick != null && cacheViewClick.imConfig.getVisibility() == View.VISIBLE) {
                     cacheViewClick.imConfig.setVisibility(View.GONE);
                     rcListConfig.setVisibility(View.GONE);
                 }
                 cacheViewClick = holder;
-                if(cacheFilter.getConfigFilter() != null){
+                if (cacheFilter.getConfigFilter() != null) {
                     holder.imConfig.setVisibility(View.VISIBLE);
                     holder.imConfig.setOnClickListener(createListenerConfig(cacheFilter));
                 }
@@ -103,15 +117,20 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
         };
     }
 
-    public View.OnClickListener createListenerConfig(CacheFilter cacheFilter){
+    public View.OnClickListener createListenerConfig(CacheFilter cacheFilter) {
         return new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(rcListConfig.getVisibility() == View.VISIBLE){
+                if (rcListConfig.getVisibility() == View.VISIBLE) {
                     rcListConfig.setVisibility(View.GONE);
                 } else {
                     rcListConfig.setVisibility(View.VISIBLE);
-                    ConfigFilterAdapter configFilterAdapter = new ConfigFilterAdapter(context, cacheFilter, imageView, bitmap);
+                    ConfigFilterAdapter configFilterAdapter;
+                    if (bitmap != null) {
+                        configFilterAdapter = new ConfigFilterAdapter(context, cacheFilter, imageView, bitmap);
+                    } else {
+                        configFilterAdapter = new ConfigFilterAdapter(context, cacheFilter, imageView, cacheMat);
+                    }
                     rcListConfig.setAdapter(configFilterAdapter);
                     rcListConfig.setLayoutManager(new LinearLayoutManager(context));
                 }
@@ -121,7 +140,13 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
 
     @Override
     public int getItemCount() {
-        return cacheFilters.size();
+        int size = 0;
+        for (CacheFilter cacheFilter : cacheFilters) {
+            if (cacheFilter.getType() == type || cacheFilter.getType() == CacheFilter.TYPE_ALL) {
+                size++;
+            }
+        }
+        return size;
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
