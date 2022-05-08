@@ -36,13 +36,14 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
     private int index;
     private Mat avatar;
 
-    public ListFilterAdapter(int type, ArrayList<CacheFilter> cacheFilters, Context context, Bitmap bitmap, ImageView imageView, RecyclerView rcListConfig) {
+    public ListFilterAdapter(int type, ArrayList<CacheFilter> cacheFilters, CacheFilter cacheFilter, Context context, Bitmap bitmap, ImageView imageView, RecyclerView rcListConfig) {
         this.type = type;
         this.cacheFilters = cacheFilters;
         this.context = context;
         this.imageView = imageView;
         this.bitmap = bitmap;
         this.rcListConfig = rcListConfig;
+        this.cacheFilter = cacheFilter;
         index = 0;
     }
 
@@ -106,12 +107,11 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
             @Override
             public void onClick(View view) {
                 if(type == CacheFilter.TYPE_IMAGE){
-                    Convert.applyEffect(cacheFilter, bitmap, cacheMat.mat, imageView);
-                } else {
-                    //UtilFunction.faceAndEffect(inputImage, cacheMat, chooseCacheFilter, imageProxy, imDrawFace);
+                    Convert.applyEffect(cacheFilter, bitmap, null, imageView);
                 }
 
                 listFilterAdapter.cacheFilter.setCache(cacheFilter);
+
                 if (cacheViewClick != null && cacheViewClick.imConfig.getVisibility() == View.VISIBLE) {
                     cacheViewClick.imConfig.setVisibility(View.GONE);
                     rcListConfig.setVisibility(View.GONE);
@@ -134,7 +134,7 @@ public class ListFilterAdapter extends RecyclerView.Adapter<ListFilterAdapter.Vi
                 } else {
                     rcListConfig.setVisibility(View.VISIBLE);
                     ConfigFilterAdapter configFilterAdapter;
-                    if (bitmap != null) {
+                    if (type == CacheFilter.TYPE_IMAGE) {
                         configFilterAdapter = new ConfigFilterAdapter(context, cacheFilter, imageView, bitmap);
                     } else {
                         configFilterAdapter = new ConfigFilterAdapter(context, cacheFilter, imageView, cacheMat);

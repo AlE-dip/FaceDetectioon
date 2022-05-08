@@ -20,6 +20,8 @@ import com.example.facedetectioon.convertor.Convert;
 import com.example.facedetectioon.model.cache.CacheFilter;
 import com.example.facedetectioon.model.cache.CacheMat;
 
+import org.opencv.core.Mat;
+
 public class ConfigFilterAdapter extends RecyclerView.Adapter<ConfigFilterAdapter.ViewHolder> {
 
     private Context context;
@@ -67,7 +69,11 @@ public class ConfigFilterAdapter extends RecyclerView.Adapter<ConfigFilterAdapte
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                     sb.setValue(seekBar.getProgress());
-                    Convert.applyEffect(cacheFilter, bitmap, cacheMat.mat, imageView);
+                    Mat mat = null;
+                    if(cacheMat != null){
+                        mat = cacheMat.mat;
+                    }
+                    Convert.applyEffect(cacheFilter, bitmap, mat, imageView);
                 }
 
                 @Override

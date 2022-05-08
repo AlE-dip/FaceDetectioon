@@ -26,6 +26,7 @@ import com.google.mlkit.vision.face.FaceDetectorOptions;
 import com.google.mlkit.vision.face.FaceLandmark;
 
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Size;
@@ -37,6 +38,7 @@ import java.util.List;
 public class FaceDetect {
 
     private FaceDetector detector;
+    private FaceDetector detector1;
     public static CacheDataFace cacheDataFace;
 
     public FaceDetect() {
@@ -49,6 +51,13 @@ public class FaceDetect {
 
         detector = FaceDetection.getClient(highAccuracyOpts);
         cacheDataFace = new CacheDataFace();
+
+        FaceDetectorOptions highAccuracyOpts1 =
+                new FaceDetectorOptions.Builder()
+                        .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
+                        .build();
+
+        detector1 = FaceDetection.getClient(highAccuracyOpts);
     }
 
     public void getBoundEye(Bitmap bitmap, Mat mat, IChangeImage changeImage, ImageView imageView){
@@ -121,7 +130,7 @@ public class FaceDetect {
                 });
     }
 
-    private org.opencv.core.Rect createRect(List<PointF> points, Mat mat){
+    public static org.opencv.core.Rect createRect(List<PointF> points, Mat mat){
         int ran = 20;
 
         PointF pointF = points.get(0);
@@ -268,6 +277,24 @@ public class FaceDetect {
                         });
     }
 
+    private void startThreadEdit(CacheFilter cacheFilter, CacheMat cacheMat, TimeLine timeLine, ImageProxy imageProxy){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if(UtilFunction.twoThreadDone()){
+                    //Log.d(MainActivity.FACE_DETECTION, "threadDone: " + "face");
+                    if(cacheFilter.getOperation() != null){
+                        cacheFilter.getOperation().operate(cacheMat, cacheDataFace, cacheFilter.getConfigFilter());
+                    }
+                    //Convert.applyEffect(chooseCacheFilter, null, mat, null);
+                    Bitmap bitmap = Convert.createBitmapFromMat(cacheMat.mat);
+                    timeLine.setView(bitmap);
+                    imageProxy.close();
+                }
+            }
+        }).start();
+    }
+
     public void drawFace(InputImage inputImage, CacheMat cacheMat, CacheFilter chooseCacheFilter, ImageView imageView, ImageProxy imageProxy, TimeLine timeLine) {
         Task<List<Face>> result = detector.process(inputImage)
                 .addOnSuccessListener(
@@ -312,19 +339,41 @@ public class FaceDetect {
                                     faceLandmarks.add(face.getLandmark(FaceLandmark.NOSE_BASE));
                                 }
 
-                                new Thread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if(UtilFunction.twoThreadDone()){
-                                            //Log.d(MainActivity.FACE_DETECTION, "threadDone: " + "face");
-                                            Paint.paintFace(cacheMat.mat, cacheDataFace);
-                                            //Convert.applyEffect(chooseCacheFilter, null, mat, null);
-                                            Bitmap bitmap = Convert.createBitmapFromMat(cacheMat.mat);
-                                            timeLine.setView(bitmap);
-                                            imageProxy.close();
-                                        }
-                                    }
-                                }).start();
+                                startThreadEdit(chooseCacheFilter, cacheMat, timeLine, imageProxy);
+                                //imageProxy.close();
+                                //Log.d(MainActivity.FACE_DETECTION, "Time: " + ((System.currentTimeMillis() - time)));
+                            }
+                        })
+                .addOnFailureListener(
+                        new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.d(MainActivity.FACE_DETECTION, "Can not detect the face!");
+                                e.printStackTrace();
+                                imageProxy.close();
+                            }
+                        });
+    }
+
+    public void zoonFace(InputImage inputImage, CacheMat cacheMat, CacheFilter chooseCacheFilter, ImageView imageView, ImageProxy imageProxy, TimeLine timeLine) {
+
+        Task<List<Face>> result = detector1.process(inputImage)
+                .addOnSuccessListener(
+                        new OnSuccessListener<List<Face>>() {
+                            @Override
+                            public void onSuccess(List<Face> faces) {
+
+                                for (Face face : faces) {
+                                    cacheDataFace.faceContourDatas = new ArrayList<>();
+                                    ArrayList<FaceContourData> faceContourDatas = cacheDataFace.faceContourDatas;
+                                    faceContourDatas.add(new FaceContourData(face.getContour(FaceContour.LEFT_EYE), true));
+                                    faceContourDatas.add(new FaceContourData(face.getContour(FaceContour.RIGHT_EYE), true));
+
+                                    faceContourDatas.add(new FaceContourData(face.getContour(FaceContour.UPPER_LIP_TOP), false));
+                                    faceContourDatas.add(new FaceContourData(face.getContour(FaceContour.LOWER_LIP_BOTTOM), false));
+                                }
+
+                                startThreadEdit(chooseCacheFilter, cacheMat, timeLine, imageProxy);
                                 //imageProxy.close();
                                 //Log.d(MainActivity.FACE_DETECTION, "Time: " + ((System.currentTimeMillis() - time)));
                             }

@@ -17,6 +17,7 @@ import android.widget.ImageView;
 import android.app.Fragment;
 
 import com.example.facedetectioon.convertor.Convert;
+import com.example.facedetectioon.model.cache.CacheFilter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import org.opencv.core.Mat;
@@ -49,8 +50,9 @@ public class EditPictureActivity extends AppCompatActivity {
         Bitmap bitmap = Convert.readImage(pathImage);
         imEditPicture.setImageBitmap(bitmap);
 
+        CacheFilter cacheFilter = new CacheFilter();
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.replace(R.id.fmConfig, new ListFilterFragment(EditPictureActivity.this, bitmap, imEditPicture));
+        ft.replace(R.id.fmConfig, new ListFilterFragment(EditPictureActivity.this, bitmap, cacheFilter, imEditPicture));
         ft.commit();
     }
 

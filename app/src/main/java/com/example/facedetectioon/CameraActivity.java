@@ -12,6 +12,7 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.LifecycleOwner;
 
 import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
 import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
@@ -23,6 +24,7 @@ import android.widget.ImageView;
 
 import com.example.facedetectioon.convertor.Convert;
 import com.example.facedetectioon.convertor.FaceDetect;
+import com.example.facedetectioon.convertor.Paint;
 import com.example.facedetectioon.convertor.TimeLine;
 import com.example.facedetectioon.convertor.UtilFunction;
 import com.example.facedetectioon.model.cache.CacheFilter;
@@ -114,7 +116,29 @@ public class CameraActivity extends AppCompatActivity {
                 @SuppressLint("UnsafeOptInUsageError") Image mediaImage = imageProxy.getImage();
                 if (mediaImage != null) {
                     InputImage inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
-                    UtilFunction.faceAndEffect(inputImage, cacheMat, chooseCacheFilter, imageProxy, imDrawFace, timeLine);
+                    if (chooseCacheFilter.getDetectFace() != null) {
+                        chooseCacheFilter.getDetectFace().detectFacialPart(inputImage, cacheMat, chooseCacheFilter, imDrawFace, imageProxy, timeLine);
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                cacheMat.mat = Convert.imageProxyToMat(imageProxy);
+                                if (UtilFunction.twoThreadDone()) {
+                                    //Log.d(MainActivity.FACE_DETECTION, "threadDone: " + "camera");
+                                    if(chooseCacheFilter.getOperation() != null){
+                                        chooseCacheFilter.getOperation().operate(cacheMat, FaceDetect.cacheDataFace, chooseCacheFilter.getConfigFilter());
+                                    }
+                                    //Convert.applyEffect(chooseCacheFilter, null, cacheMat.mat, null);
+                                    Bitmap bitmap = Convert.createBitmapFromMat(cacheMat.mat);
+                                    timeLine.setView(bitmap);
+                                    imageProxy.close();
+                                }
+                            }
+                        }).start();
+                    } else {
+                        cacheMat.mat = Convert.imageProxyToMat(imageProxy);
+                        Convert.applyEffect(chooseCacheFilter, null, cacheMat.mat, imDrawFace);
+                        imageProxy.close();
+                    }
                 }
                 // after done, release the ImageProxy object
                 // imageProxy.close();

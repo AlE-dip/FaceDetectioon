@@ -18,6 +18,8 @@ import com.example.facedetectioon.convertor.Convert;
 import com.example.facedetectioon.model.cache.CacheFilter;
 import com.example.facedetectioon.model.cache.CacheMat;
 
+import org.opencv.core.Mat;
+
 public class SelectionAdapter extends RecyclerView.Adapter<SelectionAdapter.ViewHolder>{
 
     private Context context;
@@ -69,7 +71,11 @@ public class SelectionAdapter extends RecyclerView.Adapter<SelectionAdapter.View
 
                 cacheFilter.getConfigFilter().setSelected(selection.value);
 
-                Convert.applyEffect(cacheFilter, bitmap, cacheMat.mat, imageView);
+                Mat mat = null;
+                if(cacheMat != null){
+                    mat = cacheMat.mat;
+                }
+                Convert.applyEffect(cacheFilter, bitmap, mat, imageView);
             }
         });
     }

@@ -6,6 +6,7 @@ import com.example.facedetectioon.model.ConfigFilter;
 import com.example.facedetectioon.model.ContentShare;
 import com.example.facedetectioon.model.IChangeImage;
 import com.example.facedetectioon.model.IDetectFace;
+import com.example.facedetectioon.model.IOperation;
 
 public class CacheFilter {
     public static int TYPE_IMAGE = 1;
@@ -17,16 +18,18 @@ public class CacheFilter {
     private ConfigFilter configFilter;
     private IChangeImage changeImage;
     private IDetectFace detectFace;
+    private IOperation operation;
     private int type;
 
 
-    public CacheFilter(int type, String name, ConfigFilter configFilter, IChangeImage changeImage, IDetectFace detectFace) {
+    public CacheFilter(int type, String name, ConfigFilter configFilter, IChangeImage changeImage, IDetectFace detectFace, IOperation operation) {
         this.type = type;
         this.id = ContentShare.getMaxId();
         this.name = name;
         this.configFilter = configFilter;
         this.changeImage = changeImage;
         this.detectFace = detectFace;
+        this.operation = operation;
     }
 
     public CacheFilter() {
@@ -36,6 +39,7 @@ public class CacheFilter {
         this.configFilter = null;
         this.changeImage = null;
         this.detectFace = null;
+        this.operation = null;
     }
 
     public void setCache(CacheFilter cacheFilter){
@@ -45,6 +49,15 @@ public class CacheFilter {
         configFilter = cacheFilter.getConfigFilter();
         changeImage = cacheFilter.getChangeImage();
         detectFace = cacheFilter.getDetectFace();
+        operation = cacheFilter.getOperation();
+    }
+
+    public IOperation getOperation() {
+        return operation;
+    }
+
+    public void setOperation(IOperation operation) {
+        this.operation = operation;
     }
 
     public IDetectFace getDetectFace() {

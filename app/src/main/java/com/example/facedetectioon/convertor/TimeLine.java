@@ -12,8 +12,8 @@ public class TimeLine {
         this.imageView = imageView;
     }
 
-    public synchronized void setView(Bitmap bitmap){
-        if(time < System.currentTimeMillis()){
+    public synchronized void setView(Bitmap bitmap) {
+        if (time < System.currentTimeMillis()) {
             imageView.post(new Runnable() {
                 @Override
                 public void run() {
@@ -24,9 +24,7 @@ public class TimeLine {
         }
     }
 
-    public synchronized void setTime(long time){
-        if(this.time < time){
-            this.time = time;
-        }
+    public synchronized void setTime(long time) {
+        this.time = time;
     }
 }

@@ -3,6 +3,7 @@ package com.example.facedetectioon.convertor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.PointF;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -18,11 +19,15 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
 public class Convert {
 
@@ -68,6 +73,52 @@ public class Convert {
         }
         Size size1 = new Size(mat.width() / size, mat.height() / size);
         Imgproc.resize(mat, mat, size1);
+    }
+
+    public static Mat zoomAtPoint(Mat mat, double size, Point point) {
+        Size s = mat.size();
+        if (size <= 0) {
+            size = 1;
+        }
+        Size size1 = new Size(mat.width() * size, mat.height() * size);
+        Imgproc.resize(mat, mat, size1);
+        int inX = (int) (point.x * size - point.x);
+        int inY = (int) (point.y * size - point.y);
+        if (inX < 0) inX = 0;
+        if (inY < 0) inY = 0;
+        if (inX + s.width > mat.cols()) inX = (int) (inX - (s.width - (mat.cols() - inX)));
+        if (inY + s.height > mat.rows()) inY = (int) (inY - (s.height - (mat.rows() - inY)));
+        Rect rect = new Rect(inX, inY, (int) s.width, (int) s.height);
+        Mat dst = new Mat(mat, rect);
+        return dst;
+    }
+
+    public static MatOfPoint zoomPoint(MatOfPoint matOfPoint, Mat mat, double size, Point point) {
+        MatOfPoint mop = new MatOfPoint();
+        Point[] points = matOfPoint.toArray();
+        for (Point p: points){
+            double inX = point.x - ((point.x - p.x) * size);
+            double inY = point.y - ((point.y - p.y) * size);
+            if (inX < 0) inX = 0;
+            if (inX > mat.cols()) inX = mat.cols();
+            if (inY < 0) inY = 0;
+            if (inY > mat.rows()) inY = mat.rows();
+            p.x = inX;
+            p.y = inY;
+        }
+        mop.fromArray(points);
+        return mop;
+    }
+
+    public static MatOfPoint pointsToMatContour(List<PointF> points){
+        Point[] ps = new Point[points.size()];
+        for (int i = 0; i < points.size(); i++){
+            PointF p = points.get(i);
+            ps[i] = new Point(p.x, p.y);
+        }
+        MatOfPoint matOfPoint = new MatOfPoint();
+        matOfPoint.fromArray(ps);
+        return matOfPoint;
     }
 
     public static Mat imageProxyToMat(@NonNull ImageProxy imageProxy) {

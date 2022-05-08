@@ -7,14 +7,18 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 
 import com.example.facedetectioon.model.cache.CacheDataFace;
+import com.example.facedetectioon.model.cache.CacheMat;
 import com.example.facedetectioon.model.cache.FaceContourData;
 import com.google.mlkit.vision.face.FaceLandmark;
 
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Paint {
@@ -116,5 +120,31 @@ public class Paint {
 
     public static void drawPoint(Mat mat, PointF pointF) {
         Imgproc.circle(mat, new Point(pointF.x, pointF.y), 3, new Scalar(0, 0, 255), 3);
+    }
+
+    public static void zoomFacialPart(CacheMat cacheMat, int center, double size, FaceContourData... faceContourData){
+        List<PointF> points = new ArrayList<>();
+        for (FaceContourData f: faceContourData){
+            if(f.faceContour != null){
+                points.addAll(f.faceContour.getPoints());
+            }
+        }
+        if(points.size() != 0){
+            MatOfPoint matOfPoint = Convert.pointsToMatContour(points);
+            Mat mask = Mat.zeros(cacheMat.mat.size(), cacheMat.mat.type());
+            ArrayList<MatOfPoint> contours = new ArrayList<>();
+            contours.add(matOfPoint);
+            PointF point = points.get(center);
+            Point inZoom = new Point(point.x, point.y);
+            ArrayList<MatOfPoint> zoomPoints = new ArrayList<>();
+            zoomPoints.add(Convert.zoomPoint(matOfPoint, cacheMat.mat, size, inZoom));
+            for (int i = 0; i < contours.size(); i++) {
+                Imgproc.drawContours(mask, contours, i, new Scalar(255, 255, 255), Imgproc.FILLED);
+                Core.bitwise_and(mask, cacheMat.mat, mask);
+                Imgproc.drawContours(cacheMat.mat, zoomPoints, i, new Scalar(0, 0, 0), Imgproc.FILLED);
+                mask = Convert.zoomAtPoint(mask, size, inZoom);
+                Core.bitwise_or(cacheMat.mat, mask, cacheMat.mat);
+            }
+        }
     }
 }

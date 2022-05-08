@@ -1,6 +1,8 @@
-package com.example.facedetectioon.model;
+package com.example.facedetectioon.model.cache;
 
 import android.graphics.Bitmap;
+
+import com.example.facedetectioon.model.ContentShare;
 
 public class CacheImage {
     private long id;
